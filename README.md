@@ -1,11 +1,9 @@
-# TaskFlow Copropiedades 🏢
-Proyecto de Desarrollo de Software - IU Digital
+## 🌐 Demo en vivo
+Puedes probar la aplicación aquí:(https://taskflow-2b167.web.app)
 
-### 🛠️ Tecnologías
-- **Frontend:** HTML5 / CSS3 / JavaScript
-- **Backend:** Firebase Firestore (Persistencia Offline)
-- **Metodología:** AI-Driven Development (Human-in-the-Loop)
-
-### 🚀 Cómo ejecutar
-1. Clonar el repositorio.
-2. Abrir `public/index.html` en el navegador (usar Live Server preferiblemente).
+## 🛠️ Desarrollo con IA
+Para este proyecto se utilizó un flujo de trabajo de **AI Engineer**:
+1. **Definición:** Creación de `client-brief.md`.
+2. **Planeación:** Estructura de `issues/` para trazabilidad.
+3. **HITL:** Desarrollo asistido por IA (Gemini) supervisado por el desarrollador.
+4. **Deploy:** Alojamiento automático en Firebase Hosting.
