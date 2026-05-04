@@ -22,6 +22,18 @@ En el rol de supervisor, la gestión de edificios implica recorrer áreas con nu
 4.2 Gestión de Estados: Visualización clara de tareas en "Por empezar", "En curso" y "Finalizado".
 4.3 Priorización: Sistema de colores según importancia (Baja, Media, Alta).
 4.4 Seguridad: Acceso restringido mediante autenticación de Google.
-Perfil de Usuario
 
+5. Perfil de Usuario
 Supervisor de copropiedades que necesita registrar incidencias rápidamente mientras realiza rondas de inspección física en las torres.
+
+6. Stack Tecnológico Seleccionado
+
+6.1 Frontend: Vanilla JavaScript, HTML5, CSS3.
+6.2 Backend y Base de Datos: Firebase Firestore con persistencia en IndexedDB.
+6.3 Hosting: Firebase Hosting para acceso global por URL.
+
+7. Consideraciones de UX/UI
+
+7.1 Diseño Minimalista: Interfaz limpia y sin distracciones.
+7.2 Modo Oscuro: Implementado de forma nativa o seleccionable.
+7.3 Feedback Inmediato: Animaciones sutiles para confirmar acciones.
