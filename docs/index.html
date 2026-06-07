@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>TaskFlow Copropiedades - Software Journey</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Segoe UI, Arial, sans-serif;
+    background:#f5f7fb;
+    color:#1e293b;
+}
+
+.hero{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    text-align:center;
+    padding:60px 20px;
+}
+
+.hero h1{
+    margin:0;
+    font-size:3rem;
+}
+
+.hero p{
+    font-size:1.2rem;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:40px 20px;
+}
+
+.image{
+    text-align:center;
+}
+
+.image img{
+    width:100%;
+    max-width:900px;
+    border-radius:12px;
+    box-shadow:0 4px 15px rgba(0,0,0,.15);
+}
+
+.cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:25px;
+    margin-top:40px;
+}
+
+.card{
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+
+.card h3{
+    margin-top:0;
+}
+
+.btn{
+    display:inline-block;
+    margin-top:10px;
+    background:#2563eb;
+    color:white;
+    padding:10px 18px;
+    border-radius:6px;
+    text-decoration:none;
+}
+
+.links{
+    margin-top:50px;
+}
+
+.links a{
+    display:block;
+    margin:10px 0;
+    text-decoration:none;
+    color:#2563eb;
+    font-weight:bold;
+}
+
+footer{
+    text-align:center;
+    padding:30px;
+    color:#64748b;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="hero">
+    <h1>TaskFlow Copropiedades</h1>
+    <p>Software Journey Arquitectónico</p>
+</div>
+
+<div class="container">
+
+    <div class="image">
+        <img src="assets/app-home.png" alt="TaskFlow">
+    </div>
+
+    <h2>Descripción General</h2>
+
+    <p>
+        Aplicación web desarrollada para la gestión de actividades en copropiedades,
+        utilizando Vanilla JavaScript, Firebase Firestore y Firebase Hosting.
+        Esta documentación analiza el proyecto desde la perspectiva de
+        John Ousterhout y los conceptos de Deep Modules,
+        Information Hiding e Information Leakage.
+    </p>
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>🎯 Tracer Bullet</h3>
+            <p>
+                Análisis de la estrategia inicial utilizada para validar el MVP
+                y reducir riesgos técnicos.
+            </p>
+
+            <a class="btn" href="seccion1-tracer-bullet.md">
+                Abrir sección
+            </a>
+        </div>
+
+        <div class="card">
+            <h3>🧩 Anatomía de la Complejidad</h3>
+            <p>
+                Evaluación de módulos profundos, superficiales,
+                ocultamiento y fuga de información.
+            </p>
+
+            <a class="btn" href="seccion2-anatomia-complejidad.md">
+                Abrir sección
+            </a>
+        </div>
+
+        <div class="card">
+            <h3>⚖️ Veredicto Retrospectivo</h3>
+            <p>
+                Evaluación final del diseño y capacidad de evolución
+                del sistema.
+            </p>
+
+            <a class="btn" href="seccion3-veredicto-retrospectivo.md">
+                Abrir sección
+            </a>
+        </div>
+
+    </div>
+
+    <div class="links">
+
+        <h2>Enlaces del Proyecto</h2>
+
+        <a href="https://github.com/DAVAR15/taskflow-copropiedades">
+            Repositorio GitHub
+        </a>
+
+        <a href="https://taskflow-2b167.web.app/">
+            Aplicación desplegada
+        </a>
+
+    </div>
+
+</div>
+
+<footer>
+    Evidencia de Aprendizaje - Software Journey TaskFlow Copropiedades
+</footer>
+
+</body>
+</html>
