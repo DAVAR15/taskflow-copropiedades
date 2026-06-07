@@ -1,0 +1,298 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seccion 2: Anatomía de la Complejidad | TaskFlow Software Journey</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">TF</span><span>TaskFlow Journey</span></a>
+    <nav class="nav" aria-label="Navegacion principal">
+      <a  href="index.html">Inicio</a>
+      <a  href="seccion1-tracer-bullet.html">Tracer Bullet</a>
+      <a class="active" href="seccion2-anatomia-complejidad.html">Anatomía</a>
+      <a  href="seccion3-veredicto-retrospectivo.html">Veredicto</a>
+    </nav>
+  </div>
+</header>
+<section class="site-header">
+  <div class="hero">
+    <p class="hero-kicker">Software Journey</p>
+    <h1>Seccion 2: Anatomía de la Complejidad</h1>
+    <p>Como emergen shallow modules, information leakage y change amplification al crecer el proyecto.</p>
+  </div>
+</section>
+<main class="wrap">
+  <article class="content-card">
+<p>Anatomía:</p>
+<h1>Seccion 2: Anatomía de la Complejidad</h1>
+<figure class="doc-image"><img src="assets/architecture.png" alt="Arquitectura del sistema"></figure>
+<h2>Del MVP funcional a la complejidad emergente</h2>
+<p>La complejidad de TaskFlow no aparece porque el repositorio sea grande. Aparece porque las decisiones iniciales, razonables para validar el MVP, empiezan a conectar demasiadas capas entre si. Esta seccion revisa esa evolucion usando la terminologia de John Ousterhout.</p>
+<p>Ousterhout plantea que un buen diseno reduce complejidad mediante modulos profundos, information hiding y separacion clara de decisiones. Cuando esas propiedades no existen, aparecen shallow modules, information leakage y change amplification.</p>
+<h2>Deep Modules: la base que permitio avanzar rapido</h2>
+<h3>1. Firebase Firestore SDK</h3>
+<p>El SDK de Firestore se usa mediante una interfaz compacta:</p>
+<pre><code class="language-js">import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, enableIndexedDbPersistence, where, doc, updateDoc, deleteDoc } from &quot;https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js&quot;;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Con llamadas como <code>addDoc</code>, <code>onSnapshot</code>, <code>query</code>, <code>where</code>, <code>orderBy</code>, <code>updateDoc</code> y <code>deleteDoc</code>, el sistema obtiene persistencia, consultas, documentos, timestamps de servidor y suscripciones en tiempo real. La aplicacion no implementa protocolos de red, reconexion, cache ni serializacion.</p>
+<p>Este es un deep module en el sentido de Ousterhout: una interfaz pequena ofrece una funcionalidad amplia. Su profundidad fue una razon clave para que el MVP pudiera validarse rapidamente.</p>
+<h3>2. Persistencia offline de Firestore</h3>
+<pre><code class="language-js">enableIndexedDbPersistence(db).catch(err =&gt; console.error(&quot;Error persistencia:&quot;, err.code));</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La persistencia offline es una necesidad del brief. El repositorio la aborda delegando en Firestore. Una sola llamada habilita comportamiento basado en IndexedDB. No hay evidencia de almacenamiento local manual, reconciliacion propia ni sincronizacion escrita por el proyecto.</p>
+<p>Desde Ousterhout, este es information hiding efectivo: una decision tecnica compleja queda oculta detras de una interfaz simple.</p>
+<h3>3. Firebase Hosting</h3>
+<p><code>firebase.json</code> declara:</p>
+<pre><code class="language-json">&quot;hosting&quot;: {
+  &quot;site&quot;: &quot;taskflow-2b167&quot;,
+  &quot;public&quot;: &quot;public&quot;,
+  &quot;rewrites&quot;: [
+    {
+      &quot;source&quot;: &quot;**&quot;,
+      &quot;destination&quot;: &quot;/index.html&quot;
+    }
+  ]
+}</code></pre>
+<p>Evidencia: <code>firebase.json</code>.</p>
+<p>Firebase Hosting oculta servidor web, despliegue, serving estatico y fallback SPA. El proyecto expresa el comportamiento mediante configuracion declarativa. Como deep module operacional, permitio publicar sin construir infraestructura propia.</p>
+<h3>4. Tokens CSS globales</h3>
+<pre><code class="language-css">:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+}</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>Estos tokens centralizan decisiones visuales. No convierten todo el CSS en un modulo profundo, pero si ocultan valores concretos detras de nombres reutilizables. Es un deep module parcial: reduce duplicacion visual, aunque no centraliza prioridades ni estados.</p>
+<h2>Shallow Modules: cuando la interfaz no oculta suficiente</h2>
+<h3>1. <code>window.updateStatus</code></h3>
+<pre><code class="language-js">window.updateStatus = async (id, newStatus) =&gt; {
+  try {
+    const taskRef = doc(db, &quot;tasks&quot;, id);
+    await updateDoc(taskRef, { status: newStatus });
+  } catch (e) {
+    console.error(&quot;Error al actualizar estado:&quot;, e);
+  }
+};</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Este handler permitio cambiar estados rapidamente desde botones. Pero como modulo, es shallow: la interfaz recibe el ID Firestore y el string exacto del estado. No oculta transiciones validas, reglas de dominio ni permisos.</p>
+<h3>2. <code>window.deleteTask</code></h3>
+<pre><code class="language-js">window.deleteTask = async (id) =&gt; {
+  if (confirm(&quot;Estas seguro de eliminar esta actividad?&quot;)) {
+    try {
+      await deleteDoc(doc(db, &quot;tasks&quot;, id));
+    } catch (e) {
+      console.error(&quot;Error al eliminar:&quot;, e);
+    }
+  }
+};</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La funcion mezcla confirmacion de UI y operacion Firestore. Su interfaz no encapsula una politica de borrado; apenas envuelve <code>deleteDoc</code>. Por eso, segun Ousterhout, es una interfaz superficial.</p>
+<h3>3. <code>window.editTask</code></h3>
+<pre><code class="language-js">window.editTask = (id, title, desc, priority) =&gt; {
+  currentEditId = id;
+  editTitle.value = title;
+  editDesc.value = (desc === '-' || !desc) ? '' : desc;
+  editPriority.value = priority;
+  editModal.style.display = 'flex';
+};</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El renderer debe conocer que esta funcion necesita <code>id</code>, <code>title</code>, <code>desc</code> y <code>priority</code>. La interfaz refleja la estructura interna del modal y de la tarea. Esto reduce information hiding y convierte la funcion en shallow module.</p>
+<h3>4. <code>loadTasks(property)</code></h3>
+<pre><code class="language-js">function loadTasks(property) { ... }</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Esta funcion es el punto donde la complejidad emergente se vuelve mas visible. Contiene:</p>
+<ul>
+<li>cancelacion de la suscripcion anterior;</li>
+<li>consulta Firestore;</li>
+<li>renderizado de empty state;</li>
+<li>generacion de HTML;</li>
+<li>calculo de clases CSS;</li>
+<li>botones con <code>onclick</code>;</li>
+<li>manejo de error de indice Firestore.</li>
+</ul>
+<p>El <code>architecture-checkpoint.md</code> tambien identifica <code>public/app.js</code>, especialmente <code>loadTasks()</code>, como el principal punto de acoplamiento.</p>
+<p>Evidencia: <code>architecture-checkpoint.md</code>.</p>
+<p>El tamano de <code>loadTasks()</code> no la vuelve profunda. En Ousterhout, un modulo es profundo cuando una interfaz pequena oculta una complejidad significativa. Aqui la complejidad queda concentrada, pero no queda bien oculta.</p>
+<h2>Information Hiding: lo que si queda encapsulado</h2>
+<h3>1. Alcance de modulo ES</h3>
+<p><code>index.html</code> carga <code>app.js</code> como modulo:</p>
+<pre><code class="language-html">&lt;script src=&quot;app.js&quot; type=&quot;module&quot;&gt;&lt;/script&gt;</code></pre>
+<p>Evidencia: <code>public/index.html</code>.</p>
+<p>Esto hace que variables como <code>unsubscribe</code>, <code>activeProperty</code> y <code>currentEditId</code> no sean globales por defecto:</p>
+<pre><code class="language-js">let unsubscribe = null;
+let activeProperty = &quot;&quot;;
+let currentEditId = null;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Hay information hiding parcial: el estado interno queda dentro del modulo. La limitacion es que varias funciones se exponen manualmente en <code>window</code>, lo que reabre parte de esa frontera.</p>
+<h3>2. Firestore oculta red y tiempo real</h3>
+<pre><code class="language-js">unsubscribe = onSnapshot(q, (snapshot) =&gt; { ... });</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La aplicacion recibe snapshots sin implementar reconexion, comunicacion, serializacion o cache. Este es uno de los mejores ejemplos de information hiding real en el proyecto.</p>
+<h3>3. CSS custom properties ocultan decisiones visuales</h3>
+<p>El uso de <code>var(--primary)</code>, <code>var(--surface)</code> y <code>var(--border)</code> permite que multiples reglas visuales dependan de una fuente comun.</p>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>Este ocultamiento es parcial. Las prioridades y los estados no estan igualmente encapsulados, lo que explica parte del change amplification posterior.</p>
+<h3>4. Firebase Hosting oculta servidor y routing</h3>
+<p><code>firebase.json</code> define hosting y rewrites sin que el proyecto tenga un servidor propio.</p>
+<p>Evidencia: <code>firebase.json</code>.</p>
+<p>La complejidad operacional queda oculta detras de configuracion.</p>
+<figure class="doc-image"><img src="assets/edit-modal.png" alt="Modal de edición"></figure>
+<h2>Information Leakage: donde la complejidad empieza a propagarse</h2>
+<h3>1. Configuracion Firebase dentro de la pantalla</h3>
+<p><code>firebaseConfig</code> esta en <code>public/app.js</code>, el mismo archivo que administra DOM, render y eventos.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La infraestructura se filtra hacia la capa de pantalla. Esta decision fue practica al inicio, pero reduce separacion conceptual.</p>
+<h3>2. Colecciones Firestore conocidas por handlers UI</h3>
+<pre><code class="language-js">collection(db, &quot;properties&quot;)
+collection(db, &quot;tasks&quot;)</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>No existe una capa repository que oculte nombres fisicos de colecciones. La UI conoce directamente la persistencia.</p>
+<h3>3. Esquema de documentos en la pantalla</h3>
+<p>El handler de creacion conoce el documento completo:</p>
+<pre><code class="language-js">title,
+description: desc,
+priority,
+property,
+status: &quot;por empezar&quot;,
+createdAt: serverTimestamp()</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El renderer tambien conoce <code>task.title</code>, <code>task.description</code>, <code>task.priority</code> y <code>task.status</code>. El esquema de Firestore se filtra hacia la UI.</p>
+<h3>4. Identidad de propiedad como nombre visible</h3>
+<pre><code class="language-js">option.value = prop.name;
+option.textContent = prop.name;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La tarea guarda ese valor como <code>property</code>, y la consulta lo usa:</p>
+<pre><code class="language-js">where(&quot;property&quot;, &quot;==&quot;, property)</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El nombre humano de la propiedad tambien funciona como identificador tecnico. Esta decision simplifico el MVP, pero crea information leakage entre UI, dominio y persistencia.</p>
+<h3>5. Prioridades repartidas entre HTML, JS y CSS</h3>
+<p>HTML:</p>
+<pre><code class="language-html">&lt;option value=&quot;baja&quot;&gt;Baja&lt;/option&gt;
+&lt;option value=&quot;media&quot;&gt;Media&lt;/option&gt;
+&lt;option value=&quot;alta&quot;&gt;Alta&lt;/option&gt;</code></pre>
+<p>Evidencia: <code>public/index.html</code>.</p>
+<p>JS:</p>
+<pre><code class="language-js">priority-${task.priority}</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>CSS:</p>
+<pre><code class="language-css">.priority-alta
+.priority-media
+.priority-baja</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>La decision de dominio &quot;prioridades validas&quot; se filtra en tres capas.</p>
+<h3>6. Estados repartidos entre JS y CSS</h3>
+<p>JS:</p>
+<pre><code class="language-js">status: &quot;por empezar&quot;
+updateStatus(..., 'en curso')
+updateStatus(..., 'finalizado')</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>CSS:</p>
+<pre><code class="language-css">.status-en-curso
+.status-finalizado</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>El codigo transforma espacios en guiones:</p>
+<pre><code class="language-js">const statusClass = statusLabel.replace(/\s+/g, '-');</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El texto del estado queda acoplado al nombre de clase CSS.</p>
+<h3>7. Renderer acoplado al responsive</h3>
+<p>JS genera <code>data-label</code>:</p>
+<pre><code class="language-html">&lt;td data-label=&quot;Actividad&quot;&gt;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>CSS lo consume:</p>
+<pre><code class="language-css">td::before {
+  content: attr(data-label);
+}</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>La regla responsive depende de un contrato implicito que el renderer debe recordar.</p>
+<h3>8. <code>onclick</code> inline y funciones globales</h3>
+<pre><code class="language-html">onclick=&quot;editTask(...)&quot;
+onclick=&quot;updateStatus(...)&quot;
+onclick=&quot;deleteTask(...)&quot;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El HTML generado conoce nombres globales de funciones. La frontera entre render y controlador queda debilitada.</p>
+<h3>9. Escape manual dentro del render</h3>
+<pre><code class="language-js">task.title.replace(/'/g, &quot;\\'&quot;)</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La funcion de render conoce detalles de escape para strings embebidos en atributos <code>onclick</code>. Se mezclan datos, HTML y JavaScript.</p>
+<h3>10. Error de indice Firestore mostrado en UI</h3>
+<pre><code class="language-js">alert(&quot;Falta crear un indice en Firebase para esta consulta...&quot;);</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Un detalle interno de infraestructura aparece como mensaje de usuario. Esta es information leakage desde persistencia hacia interfaz.</p>
+<h3>11. <code>colspan=&quot;5&quot;</code> duplicando estructura de tabla</h3>
+<pre><code class="language-js">&lt;tr&gt;&lt;td colspan=&quot;5&quot; ...&gt;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La tabla real tiene cinco columnas en <code>public/index.html</code>. El numero queda duplicado en JavaScript.</p>
+<h3>12. Versiones Firebase en dos mecanismos</h3>
+<p><code>package.json</code> declara:</p>
+<pre><code class="language-json">&quot;firebase&quot;: &quot;^12.12.1&quot;</code></pre>
+<p>Evidencia: <code>package.json</code>.</p>
+<p>Pero <code>public/app.js</code> importa Firebase <code>10.8.0</code> desde CDN. Esto crea leakage operacional entre dependencia npm y dependencia runtime.</p>
+<h2>Change Amplification: el costo de cambiar despues</h2>
+<h3>1. Agregar una prioridad</h3>
+<p>Agregar una prioridad como &quot;critica&quot; requeriria tocar:</p>
+<ul>
+<li><code>public/index.html</code> en el formulario de creacion;</li>
+<li><code>public/index.html</code> en el modal de edicion;</li>
+<li><code>public/style.css</code> para <code>.priority-critica</code>;</li>
+<li><code>public/app.js</code> porque el renderer forma <code>priority-${task.priority}</code>.</li>
+</ul>
+<p>Un cambio conceptual se propaga a varias capas. Eso es change amplification.</p>
+<h3>2. Cambiar estados de tarea</h3>
+<p>Modificar estados exige tocar:</p>
+<ul>
+<li>estado inicial <code>&quot;por empezar&quot;</code> en <code>public/app.js</code>;</li>
+<li>botones <code>updateStatus(..., 'en curso')</code> y <code>updateStatus(..., 'finalizado')</code>;</li>
+<li>clases <code>.status-en-curso</code> y <code>.status-finalizado</code> en <code>public/style.css</code>;</li>
+<li>posiblemente la logica <code>statusLabel.replace(/\s+/g, '-')</code>.</li>
+</ul>
+<p>La causa es la ausencia de una fuente unica de verdad para estados.</p>
+<h3>3. Cambiar identidad de propiedad</h3>
+<p>Si el proyecto migrara de <code>prop.name</code> a ID de documento, habria que modificar:</p>
+<ul>
+<li><code>option.value = prop.name</code>;</li>
+<li>guardado de <code>property</code> en tareas;</li>
+<li>consulta <code>where(&quot;property&quot;, &quot;==&quot;, property)</code>;</li>
+<li>logica de seleccion activa.</li>
+</ul>
+<p>La identidad de propiedad esta filtrada en varios puntos.</p>
+<h3>4. Agregar autenticacion Google</h3>
+<p>El brief exige autenticacion Google, pero el codigo no la implementa. No hay evidencia de <code>getAuth</code>, <code>GoogleAuthProvider</code>, <code>signInWithPopup</code> u <code>onAuthStateChanged</code>.</p>
+<p>Agregarla implicaria tocar:</p>
+<ul>
+<li>imports Firebase;</li>
+<li>inicializacion;</li>
+<li>gating de UI;</li>
+<li>reglas de acceso a Firestore fuera del codigo actual;</li>
+<li>posiblemente queries por usuario.</li>
+</ul>
+<p>Esta conclusion sobre impacto es una inferencia arquitectonica basada en la ausencia de capa de autenticacion y en la concentracion actual de <code>app.js</code>; no hay codigo implementado de auth que pueda analizarse.</p>
+<h3>5. Cambiar estructura de tabla</h3>
+<p>La tabla aparece en:</p>
+<ul>
+<li><code>public/index.html</code>, columnas de la tabla;</li>
+<li><code>public/app.js</code>, HTML de filas;</li>
+<li><code>public/app.js</code>, <code>colspan=&quot;5&quot;</code> en empty states;</li>
+<li><code>public/style.css</code>, responsive basado en <code>td::before</code> y <code>data-label</code>.</li>
+</ul>
+<p>Un cambio visual simple puede requerir coordinacion en tres archivos.</p>
+<h2>Diagnostico de la segunda etapa del journey</h2>
+<p>El MVP no fracaso arquitectonicamente; cumplio su funcion. La complejidad emerge porque el codigo propio no desarrollo todavia deep modules que oculten decisiones del dominio, del acceso a datos y del renderizado.</p>
+<p>El repositorio contiene issues que reconocen esta direccion de mejora: <code>issues/012-task-domain-validation.md</code>, <code>issues/013-firestore-repositories.md</code> y <code>issues/014-task-renderer.md</code>. Sin embargo, en el arbol actual esas extracciones no existen como codigo ejecutable; estan documentadas como plan o simulacion.</p>
+<p>La Anatomía de la complejidad es clara: los deep modules externos aceleraron la validacion; los shallow modules propios dejaron pasar information leakage; esa filtracion produjo change amplification.</p>
+    <div class="back-row"><a class="back-button" href="index.html">&larr; Volver al inicio</a></div>
+  </article>
+</main>
+<footer class="site-footer">Evidencia de Aprendizaje - Software Journey TaskFlow Copropiedades</footer>
+</body>
+</html>
+
+

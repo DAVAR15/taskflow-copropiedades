@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seccion 3: Veredicto Retrospectivo | TaskFlow Software Journey</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">TF</span><span>TaskFlow Journey</span></a>
+    <nav class="nav" aria-label="Navegacion principal">
+      <a  href="index.html">Inicio</a>
+      <a  href="seccion1-tracer-bullet.html">Tracer Bullet</a>
+      <a  href="seccion2-anatomia-complejidad.html">Anatomía</a>
+      <a class="active" href="seccion3-veredicto-retrospectivo.html">Veredicto</a>
+    </nav>
+  </div>
+</header>
+<section class="site-header">
+  <div class="hero">
+    <p class="hero-kicker">Software Journey</p>
+    <h1>Seccion 3: Veredicto Retrospectivo</h1>
+    <p>Lecciones aprendidas y prioridades arquitectonicas para la siguiente iteracion.</p>
+  </div>
+</section>
+<main class="wrap">
+  <article class="content-card">
+<h1>Seccion 3: Veredicto Retrospectivo</h1>
+<figure class="doc-image"><img src="assets/mobile-view.png" alt="Vista móvil"></figure>
+<h2>Veredicto general del journey</h2>
+<p>TaskFlow Copropiedades es un MVP funcional que tomo decisiones correctas para su primera etapa: usar Vanilla JS, Firestore y Firebase Hosting permitio validar rapidamente un flujo completo sin construir infraestructura innecesaria. Esa es la primera conclusion del journey.</p>
+<p>La segunda conclusion es arquitectonica: el proyecto ya muestra senales claras de complejidad emergente. No porque sea grande, sino porque varias decisiones importantes quedaron repartidas entre HTML, JavaScript, CSS y Firestore.</p>
+<p>Desde John Ousterhout, el veredicto es:</p>
+<ul>
+<li>Los deep modules mas fuertes son externos: Firestore, persistencia offline y Firebase Hosting.</li>
+<li>Los modulos propios son mayoritariamente shallow modules: handlers globales, render embebido y operaciones Firestore mezcladas con UI.</li>
+<li>La fuente dominante de complejidad es information leakage.</li>
+<li>El efecto practico de esa filtracion es change amplification.</li>
+</ul>
+<h2>Lo que las decisiones iniciales lograron</h2>
+<h3>1. Validacion rapida del MVP</h3>
+<p>La aplicacion conecta propiedades y tareas de punta a punta:</p>
+<ul>
+<li><code>properties</code> se escucha con <code>onSnapshot</code>.</li>
+<li><code>tasks</code> se crea con <code>addDoc</code>.</li>
+<li>tareas por propiedad se consultan con <code>where(&quot;property&quot;, &quot;==&quot;, property)</code>.</li>
+<li>estados se actualizan con <code>updateDoc</code>.</li>
+<li>tareas se eliminan con <code>deleteDoc</code>.</li>
+</ul>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Esto demuestra integracion real. El proyecto no se quedo en un prototipo visual; conecto interfaz, datos y actualizacion en tiempo real.</p>
+<h3>2. Aprovechamiento de deep modules externos</h3>
+<p>Firestore permite crear, consultar, escuchar, actualizar y eliminar documentos con una interfaz compacta.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p><code>enableIndexedDbPersistence(db)</code> aporta persistencia offline sin implementar IndexedDB manualmente.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Firebase Hosting publica la SPA con configuracion declarativa en <code>firebase.json</code>.</p>
+<p>Evidencia: <code>firebase.json</code>.</p>
+<p>Desde Ousterhout, estas decisiones fueron saludables para el MVP: delegaron complejidad en modulos profundos y permitieron que el equipo se enfocara en validar el flujo.</p>
+<h3>3. Bajo costo inicial de arquitectura</h3>
+<p>El sistema no introduce React, Vite, backend propio ni una arquitectura por capas compleja. El <code>architecture-checkpoint.md</code> indica que mantener Vanilla JS y Firebase CDN fue una decision aceptada para el tamano actual del proyecto.</p>
+<p>Evidencia: <code>architecture-checkpoint.md</code>.</p>
+<p>Esta decision redujo complejidad esencial inicial. En un MVP, no agregar capas innecesarias tambien es una forma de buen diseno.</p>
+<h3>4. Information hiding parcial</h3>
+<p>El uso de <code>type=&quot;module&quot;</code> evita que todo el estado sea global por defecto. Variables como <code>unsubscribe</code>, <code>activeProperty</code> y <code>currentEditId</code> viven dentro del modulo, aunque algunas funciones se exponen explicitamente en <code>window</code>.</p>
+<p>Evidencia: <code>public/index.html</code> y <code>public/app.js</code>.</p>
+<p>El CSS tambien centraliza algunos valores visuales mediante custom properties en <code>:root</code>.</p>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>Estos mecanismos no resuelven toda la complejidad, pero muestran que el repositorio si contiene algunos ejemplos de information hiding.</p>
+<h2>Donde la complejidad comenzo a emerger</h2>
+<h3>1. <code>public/app.js</code> se convirtio en punto de concentracion</h3>
+<p>El archivo contiene:</p>
+<ul>
+<li>imports e inicializacion Firebase;</li>
+<li>configuracion del proyecto Firebase;</li>
+<li>acceso directo a Firestore;</li>
+<li>listeners DOM;</li>
+<li>estado de pantalla;</li>
+<li>validacion minima;</li>
+<li>renderizado de filas;</li>
+<li>modal de edicion;</li>
+<li>funciones globales;</li>
+<li>manejo de errores.</li>
+</ul>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>En terminos de Ousterhout, esta concentracion no convierte a <code>app.js</code> en un deep module. Un modulo profundo oculta complejidad detras de una interfaz simple. Aqui la complejidad esta expuesta y entrelazada dentro del archivo.</p>
+<h3>2. El dominio no tiene fuente unica de verdad</h3>
+<p>Prioridades:</p>
+<ul>
+<li>aparecen en <code>public/index.html</code>;</li>
+<li>se usan en <code>public/app.js</code>;</li>
+<li>tienen clases en <code>public/style.css</code>.</li>
+</ul>
+<p>Estados:</p>
+<ul>
+<li>aparecen como strings en <code>public/app.js</code>;</li>
+<li>se transforman a clases CSS;</li>
+<li>tienen estilos en <code>public/style.css</code>.</li>
+</ul>
+<p>Evidencia: <code>public/index.html</code>, <code>public/app.js</code>, <code>public/style.css</code>.</p>
+<p>Esto produce information leakage y change amplification. Si el dominio cambia, la modificacion se propaga a varias capas.</p>
+<h3>3. El renderer conoce demasiadas decisiones</h3>
+<p><code>loadTasks(property)</code> construye filas con <code>innerHTML</code> y botones <code>onclick</code> inline. El fragmento de render conoce campos Firestore, textos, clases CSS, atributos responsive y funciones globales.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>El issue <code>014-task-renderer.md</code> tambien identifica que <code>loadTasks()</code> acopla datos, HTML, eventos y escape manual.</p>
+<p>Evidencia: <code>issues/014-task-renderer.md</code>.</p>
+<p>Esta es una combinacion clara de shallow module e information leakage.</p>
+<h3>4. La identidad de propiedad es fragil</h3>
+<p>La aplicacion usa <code>prop.name</code> como valor del selector y como campo <code>property</code> en las tareas. Luego consulta tareas con <code>where(&quot;property&quot;, &quot;==&quot;, property)</code>.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>No hay evidencia de uso de ID de documento como identidad estable. Si una propiedad cambia de nombre, o si dos propiedades comparten nombre, el modelo actual puede volverse ambiguo. Esta conclusion se deriva de la evidencia del codigo; el repositorio no contiene logica de renombrado de propiedades que permita validar otro comportamiento.</p>
+<h3>5. Seguridad y autenticacion no estan implementadas</h3>
+<p>El brief exige acceso restringido mediante autenticacion de Google.</p>
+<p>Evidencia: <code>client-brief.md</code>.</p>
+<p>Pero el codigo actual no importa Firebase Auth ni implementa flujo de login. No hay evidencia de <code>getAuth</code>, <code>GoogleAuthProvider</code>, <code>signInWithPopup</code> u <code>onAuthStateChanged</code>.</p>
+<p>Evidencia: ausencia en <code>public/app.js</code>.</p>
+<p>Por tanto, no se puede afirmar que el sistema tenga autenticacion. Solo puede afirmarse que la autenticacion es un requisito documentado pendiente.</p>
+<h2>Retrospectiva por conceptos de Ousterhout</h2>
+<h3>Deep Modules</h3>
+<p>El proyecto aprovecha deep modules externos:</p>
+<ul>
+<li>Firestore SDK.</li>
+<li>Persistencia offline de Firestore.</li>
+<li>Firebase Hosting.</li>
+</ul>
+<p>Tambien tiene un deep module parcial en los tokens CSS globales.</p>
+<p>No hay evidencia de deep modules propios para dominio, repositorio o renderizado. Los documentos internos proponen crearlos, pero el arbol actual no contiene <code>public/js/taskModel.js</code>, <code>public/js/taskRepository.js</code>, <code>public/js/propertyRepository.js</code> ni <code>public/js/taskRenderer.js</code>.</p>
+<p>Evidencia: <code>issues/012-task-domain-validation.md</code>, <code>issues/013-firestore-repositories.md</code>, <code>issues/014-task-renderer.md</code>.</p>
+<h3>Shallow Modules</h3>
+<p>Los principales shallow modules son:</p>
+<ul>
+<li><code>window.editTask</code>;</li>
+<li><code>window.updateStatus</code>;</li>
+<li><code>window.deleteTask</code>;</li>
+<li><code>loadTasks(property)</code>.</li>
+</ul>
+<p>Estas interfaces no esconden suficiente complejidad. Los handlers globales siguen dependiendo de IDs Firestore, strings de estado y detalles del DOM.</p>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<h3>Information Hiding</h3>
+<p>Hay information hiding parcial en:</p>
+<ul>
+<li>alcance de modulo ES;</li>
+<li>SDK de Firestore;</li>
+<li>Firebase Hosting;</li>
+<li>CSS custom properties.</li>
+</ul>
+<p>Sin embargo, el ocultamiento es incompleto porque muchas decisiones internas se filtran a traves de capas.</p>
+<h3>Information Leakage</h3>
+<p>Los casos mas importantes son:</p>
+<ul>
+<li>nombres de colecciones Firestore en UI;</li>
+<li>esquema de documentos en handlers y renderer;</li>
+<li>prioridades duplicadas en HTML, JS y CSS;</li>
+<li>estados duplicados en JS y CSS;</li>
+<li><code>data-label</code> como contrato implicito entre JS y CSS;</li>
+<li><code>onclick</code> inline dependiendo de funciones globales;</li>
+<li>error de indice Firestore mostrado en UI;</li>
+<li>version Firebase declarada por npm diferente de la importada por CDN.</li>
+</ul>
+<p>Evidencia: <code>public/app.js</code>, <code>public/index.html</code>, <code>public/style.css</code>, <code>package.json</code>.</p>
+<h3>Change Amplification</h3>
+<p>Cambios pequenos se amplifican:</p>
+<ul>
+<li>agregar prioridad;</li>
+<li>cambiar estados;</li>
+<li>cambiar identidad de propiedad;</li>
+<li>modificar columnas de tabla;</li>
+<li>agregar autenticacion.</li>
+</ul>
+<p>La amplificacion existe porque no hay modulos profundos propios que concentren reglas de dominio, persistencia o renderizado.</p>
+<h2>Lecciones aprendidas</h2>
+<h3>1. Un MVP puede ser correcto y aun asi acumular complejidad</h3>
+<p>La arquitectura inicial de TaskFlow fue adecuada para validar rapido. El problema no es haber usado Vanilla JS ni haber concentrado el primer flujo en pocos archivos. El problema aparece cuando esas decisiones dejan de ser temporales y comienzan a soportar mas responsabilidades.</p>
+<h3>2. Los deep modules externos aceleran, pero no reemplazan el diseno interno</h3>
+<p>Firestore y Firebase Hosting esconden mucha complejidad. Sin embargo, el dominio de tareas, las reglas de estado, las prioridades y el renderizado siguen necesitando fronteras propias. Ousterhout no propone crear mas archivos por si mismo; propone crear modulos que oculten decisiones importantes.</p>
+<h3>3. La information leakage es una senal temprana de deuda arquitectonica</h3>
+<p>El repositorio muestra prioridades en HTML, JS y CSS; estados en JS y CSS; nombres de colecciones Firestore dentro de handlers UI; y <code>data-label</code> como contrato implicito entre render y responsive. Cada filtracion parece pequena, pero juntas aumentan la carga cognitiva.</p>
+<h3>4. Change amplification revela donde falta una abstraccion</h3>
+<p>Agregar una prioridad, cambiar estados o modificar la tabla requiere tocar varios lugares. Ese costo no es accidental: revela que las decisiones de dominio y presentacion no estan suficientemente encapsuladas.</p>
+<h3>5. No toda mejora requiere un framework</h3>
+<p>La evidencia del repositorio no demuestra que React, Vite o un backend propio sean necesarios para el tamano actual. La mejora prioritaria no es cambiar de tecnologia, sino profundizar los modulos existentes y separar decisiones.</p>
+<h2>Prioridades para una siguiente iteracion</h2>
+<p>La siguiente iteracion deberia mantener el stack actual y reducir complejidad mediante modulos mas profundos. La secuencia documentada por los issues internos es coherente:</p>
+<ol>
+<li>Centralizar constantes y validaciones de tareas.</li>
+<li>Aislar acceso a Firestore en repositorios pequenos.</li>
+<li>Separar renderizado de filas de tareas y acciones.</li>
+</ol>
+<p>Evidencia: <code>issues/012-task-domain-validation.md</code>, <code>issues/013-firestore-repositories.md</code>, <code>issues/014-task-renderer.md</code>.</p>
+<p>Estas prioridades tienen sentido porque atacan las fuentes reales de information leakage:</p>
+<ul>
+<li>un modulo de dominio podria ocultar prioridades, estados y validaciones;</li>
+<li>repositorios especificos podrian ocultar nombres de colecciones, queries y operaciones Firestore;</li>
+<li>un renderer dedicado podria reemplazar <code>innerHTML</code> y <code>onclick</code> inline por nodos DOM y callbacks.</li>
+</ul>
+<p>Para respetar a Ousterhout, cada extraccion debe aumentar information hiding. Un archivo nuevo que solo mueva codigo sin ocultar decisiones importantes seria otro shallow module.</p>
+<h2>Conclusion final</h2>
+<p>El Software Journey de TaskFlow muestra una transicion clara: de un MVP pragmatico y funcional hacia un sistema que necesita fronteras arquitectonicas mas fuertes. La primera etapa fue exitosa porque uso deep modules externos para validar rapidamente el flujo principal. La siguiente etapa debe enfocarse en crear deep modules propios.</p>
+<p>Los cambios prioritarios no deberian empezar por una migracion tecnologica, sino por reducir information leakage y change amplification. Primero, centralizar el dominio de tareas; segundo, aislar Firestore detras de repositorios pequeños y específicos; tercero, separar el renderizado de tareas de la lógica de datos y de los handlers globales.</p>
+<p>Ese camino conserva lo que funciono del MVP y corrige lo que hoy limita su evolución. En terminos de Ousterhout, el objetivo de la siguiente iteracion no es tener mas capas, sino tener mejores modulos: interfaces mas simples, decisiones mejor ocultas y menos lugares que cambiar cuando el producto crezca.</p>
+    <div class="back-row"><a class="back-button" href="index.html">&larr; Volver al inicio</a></div>
+  </article>
+</main>
+<footer class="site-footer">Evidencia de Aprendizaje - Software Journey TaskFlow Copropiedades</footer>
+</body>
+</html>
+
+

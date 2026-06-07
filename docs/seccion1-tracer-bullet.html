@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seccion 1: Tracer Bullet | TaskFlow Software Journey</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">TF</span><span>TaskFlow Journey</span></a>
+    <nav class="nav" aria-label="Navegacion principal">
+      <a  href="index.html">Inicio</a>
+      <a class="active" href="seccion1-tracer-bullet.html">Tracer Bullet</a>
+      <a  href="seccion2-anatomia-complejidad.html">Anatomía</a>
+      <a  href="seccion3-veredicto-retrospectivo.html">Veredicto</a>
+    </nav>
+  </div>
+</header>
+<section class="site-header">
+  <div class="hero">
+    <p class="hero-kicker">Software Journey</p>
+    <h1>Seccion 1: Tracer Bullet</h1>
+    <p>El primer corte vertical que permitio validar el MVP con bajo costo inicial.</p>
+  </div>
+</section>
+<main class="wrap">
+  <article class="content-card">
+<h1>Seccion 1: Tracer Bullet</h1>
+<figure class="doc-image"><img src="assets/firestore-flow.png" alt="Flujo Tracer Bullet"></figure>
+<h2>Inicio del journey: validar antes de sofisticar</h2>
+<p>El primer momento del journey de TaskFlow es pragmatico. El <code>client-brief.md</code> describe una necesidad operativa concreta: registrar tareas y hallazgos durante recorridos de supervision en copropiedades, incluso en condiciones de conectividad limitada. Desde el inicio, el valor esperado no dependia de una arquitectura sofisticada, sino de lograr un flujo rapido, movil y persistente.</p>
+<p>Por eso, las decisiones iniciales fueron ligeras:</p>
+<ul>
+<li>Frontend con Vanilla JavaScript, HTML5 y CSS3.</li>
+<li>Backend/base de datos con Firebase Firestore y persistencia en IndexedDB.</li>
+<li>Hosting mediante Firebase Hosting.</li>
+</ul>
+<p>Evidencia: <code>client-brief.md</code>.</p>
+<p>Esta combinacion permitio construir un tracer bullet: un recorrido funcional estrecho, pero completo, que atraviesa la interfaz, la persistencia y el renderizado. En terminos de Ousterhout, el proyecto pudo avanzar rapido porque delego parte de la complejidad en deep modules externos, especialmente Firestore y Firebase Hosting.</p>
+<h2>El primer corte vertical del producto</h2>
+<p>El flujo minimo verificable es el siguiente:</p>
+<ol>
+<li>seleccionar o crear una propiedad;</li>
+<li>crear una tarea con titulo, descripcion y prioridad;</li>
+<li>visualizar la tarea en una tabla;</li>
+<li>editar la tarea;</li>
+<li>cambiar su estado;</li>
+<li>eliminarla.</li>
+</ol>
+<p>Ese flujo existe en el codigo actual y se distribuye entre <code>public/index.html</code>, <code>public/app.js</code> y <code>public/style.css</code>. No hay evidencia de rutas internas, framework frontend ni backend propio.</p>
+<h2>Primera decision: una sola pantalla de trabajo</h2>
+<p><code>public/index.html</code> define una pantalla unica. El archivo contiene:</p>
+<ul>
+<li>selector de propiedad: <code>select#current-property</code>;</li>
+<li>boton para agregar propiedad: <code>button#add-property-btn</code>;</li>
+<li>formulario de tarea: <code>#task-title</code>, <code>#task-desc</code>, <code>#task-priority</code>, <code>#add-btn</code>;</li>
+<li>tabla de tareas: <code>tbody#task-list</code>;</li>
+<li>modal de edicion: <code>#edit-modal</code>, <code>#edit-title</code>, <code>#edit-desc</code>, <code>#edit-priority</code>.</li>
+</ul>
+<p>Evidencia: <code>public/index.html</code>.</p>
+<p>Esta decision favorecio la velocidad. Una pantalla unica reduce coordinacion inicial, evita routing y permite validar el flujo principal sin construir una jerarquia de componentes.</p>
+<p>La lectura desde Ousterhout es doble. Como decision de MVP, la interfaz es simple y util. Como diseno evolutivo, todavia no forma un deep module propio: los IDs del DOM son conocidos directamente por <code>public/app.js</code>, de modo que la estructura visual no esta completamente oculta. Hay poco information hiding entre HTML y JavaScript.</p>
+<h2>Segunda decision: Firebase como deep module externo</h2>
+<p><code>public/app.js</code> importa Firebase App y Firestore desde CDN. Luego inicializa la aplicacion:</p>
+<pre><code class="language-js">const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Tambien habilita persistencia offline:</p>
+<pre><code class="language-js">enableIndexedDbPersistence(db).catch(err =&gt; console.error(&quot;Error persistencia:&quot;, err.code));</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Esta decision fue clave para validar el MVP. Con una llamada, la aplicacion delega en Firestore la persistencia local en IndexedDB y la sincronizacion posterior. Segun Ousterhout, esto es un deep module: la interfaz es pequena, pero la funcionalidad oculta es amplia.</p>
+<p>No hay evidencia de que el repositorio implemente manualmente IndexedDB, reconciliacion offline o sincronizacion propia. Esa ausencia no es una debilidad en esta etapa; es precisamente el beneficio de apoyarse en un modulo profundo existente.</p>
+<h2>Tercera decision: propiedades en tiempo real</h2>
+<p>La aplicacion escucha la coleccion <code>properties</code>:</p>
+<pre><code class="language-js">onSnapshot(collection(db, &quot;properties&quot;), (snapshot) =&gt; { ... });</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Por cada documento, el codigo crea una opcion del selector usando <code>prop.name</code>:</p>
+<pre><code class="language-js">option.value = prop.name;
+option.textContent = prop.name;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>En el journey inicial, esto simplifica el modelo: el usuario ve un nombre de propiedad y el sistema usa ese mismo valor para filtrar tareas. Esta simplicidad permite avanzar rapido, pero introduce una primera senal de information leakage. El nombre visible de la propiedad funciona tambien como identidad tecnica. La UI, el dominio y Firestore comparten el mismo string sin una abstraccion que oculte esa decision.</p>
+<h2>Cuarta decision: crear propiedades sin capa intermedia</h2>
+<p>El boton <code>add-property-btn</code> abre un <code>prompt</code> y crea un documento:</p>
+<pre><code class="language-js">await addDoc(collection(db, &quot;properties&quot;), {
+  name: name.trim(),
+  createdAt: serverTimestamp()
+});</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Para un MVP, esta solucion es suficiente: reduce friccion y valida que una propiedad pueda aparecer en tiempo real. Pero desde Ousterhout, la funcion es un shallow module. No oculta reglas de dominio, no centraliza validaciones de propiedad, no maneja duplicados y expone directamente la coleccion Firestore dentro del handler de UI.</p>
+<h2>Quinta decision: crear tareas directamente desde el DOM</h2>
+<p>El handler del boton <code>add-btn</code> lee los campos del formulario:</p>
+<pre><code class="language-js">const title = document.getElementById('task-title').value;
+const desc = document.getElementById('task-desc').value;
+const priority = document.getElementById('task-priority').value;
+const property = propertySelect.value;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La validacion actual comprueba solo titulo y propiedad:</p>
+<pre><code class="language-js">if (!title || !property) {
+  alert(&quot;Asegurate de escribir una actividad y seleccionar una propiedad.&quot;);
+  return;
+}</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Luego guarda el documento:</p>
+<pre><code class="language-js">await addDoc(collection(db, &quot;tasks&quot;), {
+  title,
+  description: desc,
+  priority,
+  property,
+  status: &quot;por empezar&quot;,
+  createdAt: serverTimestamp()
+});</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Esta parte del journey muestra el intercambio central del MVP: menos capas, mas velocidad. La tarea se crea sin pasar por un modelo de dominio ni un repository. La consecuencia arquitectonica es information leakage: el handler de UI conoce el esquema exacto del documento Firestore. Tambien aparece change amplification potencial: si el modelo de tarea cambia, ese cambio impacta directamente el codigo de pantalla.</p>
+<h2>Sexta decision: una funcion central para cargar y renderizar tareas</h2>
+<p>El flujo de tareas se concentra en <code>loadTasks(property)</code>:</p>
+<pre><code class="language-js">function loadTasks(property) {
+  if (!property) return;
+  if (unsubscribe) unsubscribe();
+  ...
+}</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>La consulta filtra por propiedad y ordena por fecha de creacion:</p>
+<pre><code class="language-js">const q = query(
+  collection(db, &quot;tasks&quot;),
+  where(&quot;property&quot;, &quot;==&quot;, property),
+  orderBy(&quot;createdAt&quot;, &quot;desc&quot;)
+);</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Esta decision acelera la implementacion porque todo el comportamiento visible de la lista vive en un solo lugar. Tambien muestra la diferencia entre un deep module externo y un shallow module propio. Firestore ofrece <code>query</code>, <code>where</code> y <code>orderBy</code> como interfaz compacta para una operacion compleja. En cambio, <code>loadTasks(property)</code> mezcla consulta, suscripcion, renderizado, clases CSS, estados vacios y errores de infraestructura. La funcion tiene mucho codigo, pero no oculta bien la complejidad.</p>
+<h2>Septima decision: renderizar filas con <code>innerHTML</code></h2>
+<p>Cada tarea se renderiza mediante <code>tr.innerHTML</code>:</p>
+<pre><code class="language-js">tr.innerHTML = `
+  &lt;td data-label=&quot;Actividad&quot;&gt;&lt;strong&gt;${task.title}&lt;/strong&gt;&lt;/td&gt;
+  &lt;td data-label=&quot;Descripcion&quot;&gt;${task.description || '-'}&lt;/td&gt;
+  &lt;td data-label=&quot;Prioridad&quot;&gt;&lt;span class=&quot;priority-tag priority-${task.priority}&quot;&gt;${task.priority}&lt;/span&gt;&lt;/td&gt;
+  &lt;td data-label=&quot;Estado&quot;&gt;&lt;span class=&quot;status-pill status-${statusClass}&quot;&gt;${statusLabel}&lt;/span&gt;&lt;/td&gt;
+  ...
+`;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>Los botones invocan funciones globales:</p>
+<pre><code class="language-html">onclick=&quot;editTask(...)&quot;
+onclick=&quot;updateStatus(...)&quot;
+onclick=&quot;deleteTask(...)&quot;</code></pre>
+<p>Evidencia: <code>public/app.js</code>.</p>
+<p>En el MVP, esto resuelve rapidamente el render y las acciones. En la lectura de Ousterhout, es el punto donde la complejidad comienza a hacerse visible: el renderer conoce estructura HTML, clases CSS, atributos responsive, funciones globales, strings de estado y campos de Firestore. Es un caso claro de information leakage.</p>
+<h2>Octava decision: responsive desde CSS</h2>
+<p><code>public/style.css</code> define clases de prioridad:</p>
+<pre><code class="language-css">.priority-alta { ... }
+.priority-media { ... }
+.priority-baja { ... }</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>Tambien define estados:</p>
+<pre><code class="language-css">.status-en-curso { ... }
+.status-finalizado { ... }</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>La tabla se adapta a pantallas pequenas mediante <code>data-label</code>:</p>
+<pre><code class="language-css">td::before {
+  content: attr(data-label);
+}</code></pre>
+<p>Evidencia: <code>public/style.css</code>.</p>
+<p>Esta solucion permite validar movilidad, que era un objetivo del brief. Al mismo tiempo, crea un contrato implicito entre JavaScript y CSS: el renderer debe producir <code>data-label</code> para que el responsive funcione. De nuevo aparece information leakage.</p>
+<h2>Alcance demostrado y no demostrado</h2>
+<p>Demostrado por el repositorio:</p>
+<ul>
+<li>SPA estatica con Firebase Hosting.</li>
+<li>Uso de Firestore en tiempo real.</li>
+<li>Persistencia offline mediante <code>enableIndexedDbPersistence</code>.</li>
+<li>CRUD de propiedades y tareas desde el cliente.</li>
+<li>UI responsive basada en CSS.</li>
+</ul>
+<p>No demostrado por el repositorio:</p>
+<ul>
+<li>Autenticacion Google implementada. El brief la exige, pero <code>public/app.js</code> no importa Firebase Auth ni contiene <code>getAuth</code>, <code>GoogleAuthProvider</code>, <code>signInWithPopup</code> u <code>onAuthStateChanged</code>.</li>
+<li>Service worker o manifest PWA. El brief habla de PWA, pero en el arbol actual no hay evidencia de <code>manifest</code> ni service worker.</li>
+<li>Suite automatizada de tests. <code>package.json</code> contiene un script <code>test</code> que reporta <code>&quot;Error: no test specified&quot;</code>.</li>
+</ul>
+<h2>Lectura del tracer bullet</h2>
+<p>El tracer bullet cumplio su proposito: hizo visible el producto completo con una inversion tecnica baja. Esa es la parte positiva del journey. Pero tambien dejó senales claras para la siguiente etapa: las decisiones de dominio, persistencia, UI y CSS quedaron demasiado cerca unas de otras. En el lenguaje de Ousterhout, el sistema valido rapido porque uso deep modules externos, pero empezo a acumular complejidad porque no creo deep modules propios.</p>
+    <div class="back-row"><a class="back-button" href="index.html">&larr; Volver al inicio</a></div>
+  </article>
+</main>
+<footer class="site-footer">Evidencia de Aprendizaje - Software Journey TaskFlow Copropiedades</footer>
+</body>
+</html>
+
+
